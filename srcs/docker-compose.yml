@@ -1,0 +1,77 @@
+version: '3'
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:abelayad
+    volumes:
+      - wordpress:$WP_PATH
+    networks:
+      - inception
+    depends_on:
+      - wordpress
+    build:
+      context: requirements/nginx
+      dockerfile: Dockerfile
+      args:
+        WP_PATH: $WP_PATH
+        WP_URL: $WP_URL
+    env_file: .env
+    ports:
+      - "443:443"
+    restart: unless-stopped
+  
+  wordpress:
+    container_name: wordpress
+    image: wordpress:abelayad
+    env_file: .env
+    volumes:
+      - wordpress:$WP_PATH
+    networks:
+      - inception
+    build:
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+    expose:
+      - "9000"
+  
+  mariadb:
+    container_name: mariadb
+    image: mariadb:abelayad
+    networks:
+      - inception
+    build:
+      context: requirements/mariadb
+      dockerfile: Dockerfile
+      args:
+        MDB_DB: $MDB_DB
+        MDB_USER: $MDB_USER
+        MDB_PWD: $MDB_PWD
+        MDB_ROOT_PWD: $MDB_ROOT_PWD
+    env_file: .env
+    volumes:
+      - mariadb:/var/lib/mysql
+    restart: unless-stopped
+    expose:
+      - "3306"
+
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  wordpress:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: $WP_VOL_PATH
+  mariadb:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: $MDB_VOL_PATH
+
